@@ -1,0 +1,7 @@
+{
+  "name": "axum-ts-codegen-example",
+  "private": true,
+  "devDependencies": {
+    "openapi-typescript": "^7"
+  }
+}
