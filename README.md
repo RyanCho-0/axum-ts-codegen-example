@@ -13,20 +13,35 @@ src/dto.rs + src/api.rs┤
 ## Setup
 
 ```bash
-npm install               # openapi-typescript
+npm install               # openapi-typescript + @hey-api/openapi-ts
 cargo install cargo-watch # 없으면
 ```
 
 ## Usage
 
 ```bash
-make gen      # 두 파이프라인 1회 실행
-make watch    # src/ 변경 시마다 둘 다 재생성 (실시간 반영)
-make serve    # axum 서버 (http://localhost:3000/openapi.json 로 라이브 spec)
+make dev      # ★ 한 명령: 서버 + 타입 재생성을 한 워처에서 (개발용)
+make gen      # 선택 스택(hey-api) 타입 1회 생성
+make gen-all  # 비교용 포함 전체 (ts-rs / openapi-typescript / hey-api)
+make watch    # 타입 재생성만 watch (서버 없이)
+make serve    # Axum 서버만
+make help     # 명령 요약
 ```
 
-`make watch` 띄워놓고 `src/dto.rs`에 필드 하나 추가해 보면
-`ts/ts-rs/`와 `ts/openapi/api-types.ts`가 둘 다 즉시 갱신된다.
+### `make dev` 하나로 끝
+
+`make dev`는 **터미널 하나, cargo-watch 하나**로 다음을 `src/` 저장마다 순서대로 실행한다:
+
+1. `openapi.json` 재생성 → `ts/hey-api/*` (types + SDK + TanStack Query) 갱신
+2. Axum API 서버 (재)실행 (http://localhost:3000)
+
+> "서버 두 대"가 아니다. 서버는 Axum 하나뿐이고, 타입 재생성은 서버가 아니라
+> 같은 워처에 묶인 빌드 스텝이다. (codegen과 server를 한 `-s` 명령으로 체이닝해
+> 순서를 보장 — cargo-watch는 `-s`/`-x` 혼합 순서를 보장하지 않기 때문.)
+
+`make dev` 띄워놓고 `src/dto.rs`에 필드를 추가/변경하면 `ts/hey-api/`가 즉시 갱신되고
+서버도 새 코드로 재시작된다. (`make gen-all`을 쓰면 비교용 `ts/ts-rs/`,
+`ts/openapi/api-types.ts`도 함께 생성된다.)
 
 ## React Native / TanStack Query에서 쓰기
 
