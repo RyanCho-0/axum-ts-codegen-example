@@ -11,6 +11,8 @@ use crate::dto::*;
 #[utoipa::path(
     post,
     path = "/posts",
+    operation_id = "create_post",
+    tag = "posts",
     request_body = CreatePostRequest,
     responses(
         (status = 200, body = PostResponse),
@@ -30,6 +32,8 @@ async fn create_post(Json(req): Json<CreatePostRequest>) -> Json<PostResponse> {
 #[utoipa::path(
     get,
     path = "/posts",
+    operation_id = "list_posts",
+    tag = "posts",
     responses((status = 200, body = ListResponse<PostResponse>))
 )]
 async fn list_posts() -> Json<ListResponse<PostResponse>> {
@@ -42,6 +46,8 @@ async fn list_posts() -> Json<ListResponse<PostResponse>> {
 #[utoipa::path(
     get,
     path = "/posts/{id}",
+    operation_id = "get_post",
+    tag = "posts",
     params(("id" = String, Path, description = "Post id")),
     responses(
         (status = 200, body = PostResponse),
