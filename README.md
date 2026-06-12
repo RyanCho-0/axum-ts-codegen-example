@@ -28,6 +28,14 @@ make serve    # axum 서버 (http://localhost:3000/openapi.json 로 라이브 sp
 `make watch` 띄워놓고 `src/dto.rs`에 필드 하나 추가해 보면
 `ts/ts-rs/`와 `ts/openapi/api-types.ts`가 둘 다 즉시 갱신된다.
 
+## React Native / TanStack Query에서 쓰기
+
+hey-api 출력(`ts/hey-api/`)은 `fetch` 기반이라 RN에서 네이티브 의존성 없이 동작한다.
+`@tanstack/react-query` 플러그인이 만든 `getPostOptions()` / `createPostMutation()` /
+`listPostsQueryKey()`를 `useQuery`/`useMutation`에 그대로 넣으면 된다.
+복붙용 레퍼런스: [`examples/rn/`](examples/rn/README.md) (Provider 설정 · baseUrl ·
+NetInfo/AppState 연동 · 화면 사용 예).
+
 ## 비교 포인트 (생성물에서 직접 확인)
 
 | 관찰 대상 | ts-rs (`ts/ts-rs/`) | utoipa (`ts/openapi/api-types.ts`) |
