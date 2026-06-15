@@ -67,10 +67,11 @@ map, optional 필드, 제네릭 리스트(`ListResponse_PostResponse` 식 모노
 ## React Native / TanStack Query에서 쓰기
 
 hey-api 출력(`ts/hey-api/`)은 `fetch` 기반이라 RN에서 네이티브 의존성 없이 동작한다.
-`@tanstack/react-query` 플러그인이 만든 `getPostOptions()` / `createPostMutation()` /
-`listPostsQueryKey()`를 `useQuery`/`useMutation`에 그대로 넣으면 된다.
-복붙용 레퍼런스: [`examples/rn/`](examples/rn/README.md) (Provider 설정 · baseUrl ·
-NetInfo/AppState 연동 · 화면 사용 예).
+React Query 레이어(커스텀 훅)와 QueryClient는 `examples/shared/`에 두고 **web·RN이 똑같이
+import**하며, baseUrl·Provider·online/focus 매니저 같은 플랫폼 차이만 `examples/web/`·
+`examples/rn/`에 둔다.
+
+전체 공유 구조·전략·실무 모노레포 배치: [`examples/`](examples/README.md)
 
 > 참고: hey-api 플러그인은 `useGetPost()` 같은 훅을 직접 만들지 않고, `useQuery`에
 > 넣을 **options/key/mutation 팩토리**를 생성한다(더 유연). 완성된 훅을 원하면 orval로

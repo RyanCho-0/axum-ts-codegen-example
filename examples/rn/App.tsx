@@ -1,37 +1,33 @@
 /**
- * App root: wires QueryClientProvider + RN-specific online/focus managers.
+ * React Native entry point.
  *
- * Why the managers: on web, TanStack Query auto-detects window focus and
- * online/offline. RN has no `window`, so you bridge them manually with
- * NetInfo (connectivity) and AppState (foreground/background). This is the
- * official RN pattern — queries still work without it, but you lose
- * "refetch on app resume" and "pause retries when offline".
+ * Platform-specific bits ONLY (everything else comes from `../shared`):
+ *  - baseUrl for the API client
+ *  - mounting the QueryClientProvider
+ *  - bridging RN connectivity/foreground into TanStack's online/focus managers
+ *    (web gets these from `window` for free; RN has no window, so we wire
+ *    NetInfo + AppState manually — the official RN pattern).
  */
 import React, { useEffect } from 'react';
 import { AppState, type AppStateStatus, Platform } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import {
-  QueryClient,
   QueryClientProvider,
   focusManager,
   onlineManager,
 } from '@tanstack/react-query';
 
-import { configureApiClient } from './api-client';
+import { configureApiClient, createQueryClient } from '../shared';
 import { RootNavigator } from './RootNavigator'; // your app's navigator
 
-configureApiClient(/* () => store.getState().authToken */);
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 2,
-      staleTime: 30_000,
-    },
-  },
+configureApiClient({
+  baseUrl: 'https://api.your-server.com',
+  // getToken: () => store.getState().authToken,
 });
 
-// Connectivity → TanStack online state.
+const queryClient = createQueryClient();
+
+// Connectivity → TanStack online state (pause retries when offline).
 onlineManager.setEventListener((setOnline) =>
   NetInfo.addEventListener((state) => setOnline(!!state.isConnected)),
 );
@@ -40,9 +36,7 @@ export default function App() {
   // Foreground/background → TanStack focus state (drives refetchOnWindowFocus).
   useEffect(() => {
     const sub = AppState.addEventListener('change', (status: AppStateStatus) => {
-      if (Platform.OS !== 'web') {
-        focusManager.setFocused(status === 'active');
-      }
+      if (Platform.OS !== 'web') focusManager.setFocused(status === 'active');
     });
     return () => sub.remove();
   }, []);
