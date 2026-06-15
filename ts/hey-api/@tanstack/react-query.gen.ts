@@ -2,21 +2,52 @@
 
 import {
   type DefaultError,
+  type InfiniteData,
+  infiniteQueryOptions,
   queryOptions,
   type UseMutationOptions,
 } from "@tanstack/react-query";
 
 import { client } from "../client.gen";
-import { createPost, getPost, listPosts, type Options } from "../sdk.gen";
+import {
+  createComment,
+  createPost,
+  createUser,
+  deletePost,
+  getPost,
+  getUser,
+  listComments,
+  listPosts,
+  listUsers,
+  type Options,
+  updatePost,
+} from "../sdk.gen";
 import type {
+  CreateCommentData,
+  CreateCommentResponse,
   CreatePostData,
   CreatePostError,
   CreatePostResponse,
+  CreateUserData,
+  CreateUserResponse,
+  DeletePostData,
+  DeletePostError,
+  DeletePostResponse,
   GetPostData,
   GetPostError,
   GetPostResponse,
+  GetUserData,
+  GetUserError,
+  GetUserResponse,
+  ListCommentsData,
+  ListCommentsResponse,
   ListPostsData,
   ListPostsResponse,
+  ListUsersData,
+  ListUsersResponse,
+  UpdatePostData,
+  UpdatePostError,
+  UpdatePostResponse,
 } from "../types.gen";
 
 export type QueryKey<TOptions extends Options> = [
@@ -81,6 +112,85 @@ export const listPostsOptions = (options?: Options<ListPostsData>) =>
     queryKey: listPostsQueryKey(options),
   });
 
+const createInfiniteParams = <
+  K extends Pick<QueryKey<Options>[0], "body" | "headers" | "path" | "query">,
+>(
+  queryKey: QueryKey<Options>,
+  page: K,
+) => {
+  const params = { ...queryKey[0] };
+  if (page.body) {
+    params.body = {
+      ...(queryKey[0].body as any),
+      ...(page.body as any),
+    };
+  }
+  if (page.headers) {
+    params.headers = {
+      ...queryKey[0].headers,
+      ...page.headers,
+    };
+  }
+  if (page.path) {
+    params.path = {
+      ...(queryKey[0].path as any),
+      ...(page.path as any),
+    };
+  }
+  if (page.query) {
+    params.query = {
+      ...(queryKey[0].query as any),
+      ...(page.query as any),
+    };
+  }
+  return params as unknown as typeof page;
+};
+
+export const listPostsInfiniteQueryKey = (
+  options?: Options<ListPostsData>,
+): QueryKey<Options<ListPostsData>> =>
+  createQueryKey("listPosts", options, true);
+
+export const listPostsInfiniteOptions = (options?: Options<ListPostsData>) =>
+  infiniteQueryOptions<
+    ListPostsResponse,
+    DefaultError,
+    InfiniteData<ListPostsResponse>,
+    QueryKey<Options<ListPostsData>>,
+    | string
+    | Pick<
+        QueryKey<Options<ListPostsData>>[0],
+        "body" | "headers" | "path" | "query"
+      >
+  >(
+    // @ts-ignore
+    {
+      queryFn: async ({ pageParam, queryKey, signal }) => {
+        // @ts-ignore
+        const page: Pick<
+          QueryKey<Options<ListPostsData>>[0],
+          "body" | "headers" | "path" | "query"
+        > =
+          typeof pageParam === "object"
+            ? pageParam
+            : {
+                query: {
+                  cursor: pageParam,
+                },
+              };
+        const params = createInfiniteParams(queryKey, page);
+        const { data } = await listPosts({
+          ...options,
+          ...params,
+          signal,
+          throwOnError: true,
+        });
+        return data;
+      },
+      queryKey: listPostsInfiniteQueryKey(options),
+    },
+  );
+
 export const createPostMutation = (
   options?: Partial<Options<CreatePostData>>,
 ): UseMutationOptions<
@@ -95,6 +205,30 @@ export const createPostMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await createPost({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const deletePostMutation = (
+  options?: Partial<Options<DeletePostData>>,
+): UseMutationOptions<
+  DeletePostResponse,
+  DeletePostError,
+  Options<DeletePostData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    DeletePostResponse,
+    DeletePostError,
+    Options<DeletePostData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await deletePost({
         ...options,
         ...fnOptions,
         throwOnError: true,
@@ -125,4 +259,142 @@ export const getPostOptions = (options: Options<GetPostData>) =>
       return data;
     },
     queryKey: getPostQueryKey(options),
+  });
+
+export const updatePostMutation = (
+  options?: Partial<Options<UpdatePostData>>,
+): UseMutationOptions<
+  UpdatePostResponse,
+  UpdatePostError,
+  Options<UpdatePostData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    UpdatePostResponse,
+    UpdatePostError,
+    Options<UpdatePostData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await updatePost({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const listCommentsQueryKey = (options: Options<ListCommentsData>) =>
+  createQueryKey("listComments", options);
+
+export const listCommentsOptions = (options: Options<ListCommentsData>) =>
+  queryOptions<
+    ListCommentsResponse,
+    DefaultError,
+    ListCommentsResponse,
+    ReturnType<typeof listCommentsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listComments({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listCommentsQueryKey(options),
+  });
+
+export const createCommentMutation = (
+  options?: Partial<Options<CreateCommentData>>,
+): UseMutationOptions<
+  CreateCommentResponse,
+  DefaultError,
+  Options<CreateCommentData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CreateCommentResponse,
+    DefaultError,
+    Options<CreateCommentData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await createComment({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const listUsersQueryKey = (options?: Options<ListUsersData>) =>
+  createQueryKey("listUsers", options);
+
+export const listUsersOptions = (options?: Options<ListUsersData>) =>
+  queryOptions<
+    ListUsersResponse,
+    DefaultError,
+    ListUsersResponse,
+    ReturnType<typeof listUsersQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listUsers({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listUsersQueryKey(options),
+  });
+
+export const createUserMutation = (
+  options?: Partial<Options<CreateUserData>>,
+): UseMutationOptions<
+  CreateUserResponse,
+  DefaultError,
+  Options<CreateUserData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CreateUserResponse,
+    DefaultError,
+    Options<CreateUserData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await createUser({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const getUserQueryKey = (options: Options<GetUserData>) =>
+  createQueryKey("getUser", options);
+
+export const getUserOptions = (options: Options<GetUserData>) =>
+  queryOptions<
+    GetUserResponse,
+    GetUserError,
+    GetUserResponse,
+    ReturnType<typeof getUserQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getUser({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getUserQueryKey(options),
   });

@@ -4,13 +4,44 @@ export type ClientOptions = {
   baseUrl: `${string}://openapi.json` | (string & {});
 };
 
+/**
+ * Reused author summary embedded in posts and comments.
+ */
+export type Author = {
+  display_name: string;
+  id: string;
+};
+
+export type Comment = {
+  author: Author;
+  created_at: number;
+  id: string;
+  text: string;
+};
+
+export type CreateCommentRequest = {
+  text: string;
+};
+
 export type CreatePostRequest = {
   body: string;
   /**
-   * Optional tags — shows Option<Vec<T>> handling in both outputs.
+   * Arbitrary metadata → `Record<string, string>` / `{ [key: string]: string }`.
+   */
+  metadata?: {
+    [key: string]: string;
+  };
+  /**
+   * Optional list → `string[] | undefined`.
    */
   tags?: Array<string> | null;
   title: string;
+};
+
+export type CreateUserRequest = {
+  display_name: string;
+  email: string;
+  role?: null | UserRole;
 };
 
 export type ErrorResponse = {
@@ -19,30 +50,81 @@ export type ErrorResponse = {
 };
 
 /**
- * Generic list wrapper — ts-rs keeps the generic, OpenAPI monomorphizes it.
+ * Generic paginated wrapper. utoipa monomorphizes per instantiation
+ * (`ListResponse_PostResponse`, `ListResponse_UserResponse`, …).
+ */
+export type ListResponseComment = {
+  bookmark?: string | null;
+  items: Array<{
+    author: Author;
+    created_at: number;
+    id: string;
+    text: string;
+  }>;
+};
+
+/**
+ * Generic paginated wrapper. utoipa monomorphizes per instantiation
+ * (`ListResponse_PostResponse`, `ListResponse_UserResponse`, …).
  */
 export type ListResponsePostResponse = {
   bookmark?: string | null;
   items: Array<{
+    /**
+     * Nested object.
+     */
+    author: Author;
     body: string;
+    /**
+     * Nested array of objects.
+     */
+    comments: Array<Comment>;
     created_at: number;
     id: string;
     status: PostStatus;
+    tags: Array<string>;
     title: string;
   }>;
 };
 
+/**
+ * Generic paginated wrapper. utoipa monomorphizes per instantiation
+ * (`ListResponse_PostResponse`, `ListResponse_UserResponse`, …).
+ */
+export type ListResponseUserResponse = {
+  bookmark?: string | null;
+  items: Array<{
+    display_name: string;
+    email: string;
+    id: string;
+    role: UserRole;
+  }>;
+};
+
 export type PostResponse = {
+  /**
+   * Nested object.
+   */
+  author: Author;
   body: string;
+  /**
+   * Nested array of objects.
+   */
+  comments: Array<Comment>;
   created_at: number;
   id: string;
   status: PostStatus;
+  tags: Array<string>;
   title: string;
 };
 
 /**
- * Tagged enum — the interesting case: compare how serde `tag`/`rename_all`
- * is rendered by ts-rs vs the OpenAPI route.
+ * Plain enum used both as a field and as a query parameter → string union.
+ */
+export type PostSort = "newest" | "oldest" | "popular";
+
+/**
+ * Tagged enum → discriminated union. Three variants incl. data-carrying ones.
  */
 export type PostStatus =
   | {
@@ -51,12 +133,42 @@ export type PostStatus =
   | {
       published_at: number;
       type: "published";
+    }
+  | {
+      reason: string;
+      type: "archived";
     };
+
+/**
+ * PATCH semantics: every field optional → partial update payload.
+ */
+export type UpdatePostRequest = {
+  body?: string | null;
+  tags?: Array<string> | null;
+  title?: string | null;
+};
+
+export type UserResponse = {
+  display_name: string;
+  email: string;
+  id: string;
+  role: UserRole;
+};
+
+export type UserRole = "admin" | "member" | "guest";
 
 export type ListPostsData = {
   body?: never;
   path?: never;
-  query?: never;
+  query?: {
+    /**
+     * Filter by status discriminant, e.g. `published`.
+     */
+    status?: string;
+    sort?: PostSort;
+    limit?: number;
+    cursor?: string;
+  };
   url: "/posts";
 };
 
@@ -85,6 +197,33 @@ export type CreatePostResponses = {
 
 export type CreatePostResponse = CreatePostResponses[keyof CreatePostResponses];
 
+export type DeletePostData = {
+  body?: never;
+  path: {
+    /**
+     * Post id
+     */
+    id: string;
+  };
+  query?: never;
+  url: "/posts/{id}";
+};
+
+export type DeletePostErrors = {
+  404: ErrorResponse;
+};
+
+export type DeletePostError = DeletePostErrors[keyof DeletePostErrors];
+
+export type DeletePostResponses = {
+  /**
+   * Deleted
+   */
+  204: void;
+};
+
+export type DeletePostResponse = DeletePostResponses[keyof DeletePostResponses];
+
 export type GetPostData = {
   body?: never;
   path: {
@@ -108,3 +247,115 @@ export type GetPostResponses = {
 };
 
 export type GetPostResponse = GetPostResponses[keyof GetPostResponses];
+
+export type UpdatePostData = {
+  body: UpdatePostRequest;
+  path: {
+    /**
+     * Post id
+     */
+    id: string;
+  };
+  query?: never;
+  url: "/posts/{id}";
+};
+
+export type UpdatePostErrors = {
+  404: ErrorResponse;
+};
+
+export type UpdatePostError = UpdatePostErrors[keyof UpdatePostErrors];
+
+export type UpdatePostResponses = {
+  200: PostResponse;
+};
+
+export type UpdatePostResponse = UpdatePostResponses[keyof UpdatePostResponses];
+
+export type ListCommentsData = {
+  body?: never;
+  path: {
+    /**
+     * Post id
+     */
+    id: string;
+  };
+  query?: never;
+  url: "/posts/{id}/comments";
+};
+
+export type ListCommentsResponses = {
+  200: ListResponseComment;
+};
+
+export type ListCommentsResponse =
+  ListCommentsResponses[keyof ListCommentsResponses];
+
+export type CreateCommentData = {
+  body: CreateCommentRequest;
+  path: {
+    /**
+     * Post id
+     */
+    id: string;
+  };
+  query?: never;
+  url: "/posts/{id}/comments";
+};
+
+export type CreateCommentResponses = {
+  200: Comment;
+};
+
+export type CreateCommentResponse =
+  CreateCommentResponses[keyof CreateCommentResponses];
+
+export type ListUsersData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/users";
+};
+
+export type ListUsersResponses = {
+  200: ListResponseUserResponse;
+};
+
+export type ListUsersResponse = ListUsersResponses[keyof ListUsersResponses];
+
+export type CreateUserData = {
+  body: CreateUserRequest;
+  path?: never;
+  query?: never;
+  url: "/users";
+};
+
+export type CreateUserResponses = {
+  200: UserResponse;
+};
+
+export type CreateUserResponse = CreateUserResponses[keyof CreateUserResponses];
+
+export type GetUserData = {
+  body?: never;
+  path: {
+    /**
+     * User id
+     */
+    id: string;
+  };
+  query?: never;
+  url: "/users/{id}";
+};
+
+export type GetUserErrors = {
+  404: ErrorResponse;
+};
+
+export type GetUserError = GetUserErrors[keyof GetUserErrors];
+
+export type GetUserResponses = {
+  200: UserResponse;
+};
+
+export type GetUserResponse = GetUserResponses[keyof GetUserResponses];

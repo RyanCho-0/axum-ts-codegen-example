@@ -30,6 +30,54 @@ export interface paths {
         get: operations["get_post"];
         put?: never;
         post?: never;
+        delete: operations["delete_post"];
+        options?: never;
+        head?: never;
+        patch: operations["update_post"];
+        trace?: never;
+    };
+    "/posts/{id}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_comments"];
+        put?: never;
+        post: operations["create_comment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_users"];
+        put?: never;
+        post: operations["create_user"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_user"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -40,40 +88,106 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Reused author summary embedded in posts and comments. */
+        Author: {
+            display_name: string;
+            id: string;
+        };
+        Comment: {
+            author: components["schemas"]["Author"];
+            /** Format: int64 */
+            created_at: number;
+            id: string;
+            text: string;
+        };
+        CreateCommentRequest: {
+            text: string;
+        };
         CreatePostRequest: {
             body: string;
-            /** @description Optional tags — shows Option<Vec<T>> handling in both outputs. */
+            /** @description Arbitrary metadata → `Record<string, string>` / `{ [key: string]: string }`. */
+            metadata?: {
+                [key: string]: string;
+            };
+            /** @description Optional list → `string[] | undefined`. */
             tags?: string[] | null;
             title: string;
+        };
+        CreateUserRequest: {
+            display_name: string;
+            email: string;
+            role?: null | components["schemas"]["UserRole"];
         };
         ErrorResponse: {
             code: string;
             message: string;
         };
-        /** @description Generic list wrapper — ts-rs keeps the generic, OpenAPI monomorphizes it. */
+        /**
+         * @description Generic paginated wrapper. utoipa monomorphizes per instantiation
+         *     (`ListResponse_PostResponse`, `ListResponse_UserResponse`, …).
+         */
+        ListResponse_Comment: {
+            bookmark?: string | null;
+            items: {
+                author: components["schemas"]["Author"];
+                /** Format: int64 */
+                created_at: number;
+                id: string;
+                text: string;
+            }[];
+        };
+        /**
+         * @description Generic paginated wrapper. utoipa monomorphizes per instantiation
+         *     (`ListResponse_PostResponse`, `ListResponse_UserResponse`, …).
+         */
         ListResponse_PostResponse: {
             bookmark?: string | null;
             items: {
+                /** @description Nested object. */
+                author: components["schemas"]["Author"];
                 body: string;
+                /** @description Nested array of objects. */
+                comments: components["schemas"]["Comment"][];
                 /** Format: int64 */
                 created_at: number;
                 id: string;
                 status: components["schemas"]["PostStatus"];
+                tags: string[];
                 title: string;
             }[];
         };
+        /**
+         * @description Generic paginated wrapper. utoipa monomorphizes per instantiation
+         *     (`ListResponse_PostResponse`, `ListResponse_UserResponse`, …).
+         */
+        ListResponse_UserResponse: {
+            bookmark?: string | null;
+            items: {
+                display_name: string;
+                email: string;
+                id: string;
+                role: components["schemas"]["UserRole"];
+            }[];
+        };
         PostResponse: {
+            /** @description Nested object. */
+            author: components["schemas"]["Author"];
             body: string;
+            /** @description Nested array of objects. */
+            comments: components["schemas"]["Comment"][];
             /** Format: int64 */
             created_at: number;
             id: string;
             status: components["schemas"]["PostStatus"];
+            tags: string[];
             title: string;
         };
         /**
-         * @description Tagged enum — the interesting case: compare how serde `tag`/`rename_all`
-         *     is rendered by ts-rs vs the OpenAPI route.
+         * @description Plain enum used both as a field and as a query parameter → string union.
+         * @enum {string}
          */
+        PostSort: "newest" | "oldest" | "popular";
+        /** @description Tagged enum → discriminated union. Three variants incl. data-carrying ones. */
         PostStatus: {
             /** @enum {string} */
             type: "draft";
@@ -82,7 +196,25 @@ export interface components {
             published_at: number;
             /** @enum {string} */
             type: "published";
+        } | {
+            reason: string;
+            /** @enum {string} */
+            type: "archived";
         };
+        /** @description PATCH semantics: every field optional → partial update payload. */
+        UpdatePostRequest: {
+            body?: string | null;
+            tags?: string[] | null;
+            title?: string | null;
+        };
+        UserResponse: {
+            display_name: string;
+            email: string;
+            id: string;
+            role: components["schemas"]["UserRole"];
+        };
+        /** @enum {string} */
+        UserRole: "admin" | "member" | "guest";
     };
     responses: never;
     parameters: never;
@@ -94,7 +226,13 @@ export type $defs = Record<string, never>;
 export interface operations {
     list_posts: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Filter by status discriminant, e.g. `published`. */
+                status?: string;
+                sort?: components["schemas"]["PostSort"];
+                limit?: number;
+                cursor?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -160,6 +298,189 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PostResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    delete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Post id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    update_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Post id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePostRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_comments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Post id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponse_Comment"];
+                };
+            };
+        };
+    };
+    create_comment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Post id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCommentRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Comment"];
+                };
+            };
+        };
+    };
+    list_users: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponse_UserResponse"];
+                };
+            };
+        };
+    };
+    create_user: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateUserRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+        };
+    };
+    get_user: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
                 };
             };
             404: {

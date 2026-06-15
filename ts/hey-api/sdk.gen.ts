@@ -3,14 +3,31 @@
 import type { Client, Options as Options2, TDataShape } from "./client";
 import { client } from "./client.gen";
 import type {
+  CreateCommentData,
+  CreateCommentResponses,
   CreatePostData,
   CreatePostErrors,
   CreatePostResponses,
+  CreateUserData,
+  CreateUserResponses,
+  DeletePostData,
+  DeletePostErrors,
+  DeletePostResponses,
   GetPostData,
   GetPostErrors,
   GetPostResponses,
+  GetUserData,
+  GetUserErrors,
+  GetUserResponses,
+  ListCommentsData,
+  ListCommentsResponses,
   ListPostsData,
   ListPostsResponses,
+  ListUsersData,
+  ListUsersResponses,
+  UpdatePostData,
+  UpdatePostErrors,
+  UpdatePostResponses,
 } from "./types.gen";
 
 export type Options<
@@ -55,9 +72,85 @@ export const createPost = <ThrowOnError extends boolean = false>(
     },
   });
 
+export const deletePost = <ThrowOnError extends boolean = false>(
+  options: Options<DeletePostData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeletePostResponses,
+    DeletePostErrors,
+    ThrowOnError
+  >({ url: "/posts/{id}", ...options });
+
 export const getPost = <ThrowOnError extends boolean = false>(
   options: Options<GetPostData, ThrowOnError>,
 ) =>
   (options.client ?? client).get<GetPostResponses, GetPostErrors, ThrowOnError>(
     { url: "/posts/{id}", ...options },
+  );
+
+export const updatePost = <ThrowOnError extends boolean = false>(
+  options: Options<UpdatePostData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdatePostResponses,
+    UpdatePostErrors,
+    ThrowOnError
+  >({
+    url: "/posts/{id}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+export const listComments = <ThrowOnError extends boolean = false>(
+  options: Options<ListCommentsData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<ListCommentsResponses, unknown, ThrowOnError>({
+    url: "/posts/{id}/comments",
+    ...options,
+  });
+
+export const createComment = <ThrowOnError extends boolean = false>(
+  options: Options<CreateCommentData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateCommentResponses,
+    unknown,
+    ThrowOnError
+  >({
+    url: "/posts/{id}/comments",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+export const listUsers = <ThrowOnError extends boolean = false>(
+  options?: Options<ListUsersData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<ListUsersResponses, unknown, ThrowOnError>({
+    url: "/users",
+    ...options,
+  });
+
+export const createUser = <ThrowOnError extends boolean = false>(
+  options: Options<CreateUserData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<CreateUserResponses, unknown, ThrowOnError>({
+    url: "/users",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+export const getUser = <ThrowOnError extends boolean = false>(
+  options: Options<GetUserData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<GetUserResponses, GetUserErrors, ThrowOnError>(
+    { url: "/users/{id}", ...options },
   );
